@@ -1040,7 +1040,7 @@ const UserDashboard = () => {
                               <p className="text-green-200 font-medium">
                                 {userRegistration.registrationFee ? 
                                   `Registration Fee: ${userRegistration.registrationFee} BDT` : 
-                                  'Registration Fee: 100 BDT'
+                                  'Registration Fee: ৳100'
                                 }
                               </p>
                             </div>
@@ -1102,6 +1102,49 @@ const UserDashboard = () => {
                       </div>
                     </motion.div>
                   )}
+                  
+                  {/* Payment Information (Always Visible) */}
+                  <motion.div 
+                    className="p-6 bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-2xl border-2 border-yellow-500/30"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    <div className="flex items-start">
+                      <CreditCard className="w-6 h-6 text-yellow-400 mt-1 mr-4 flex-shrink-0" />
+                      <div className="flex-1">
+                        <h3 className="text-lg font-black text-yellow-400 mb-3 uppercase tracking-wider">Payment Information</h3>
+                        <p className="text-gray-300 mb-4">Registration Fee: <span className="text-yellow-400 font-black">৳100</span></p>
+                        <p className="text-gray-300 mb-4">Please make payment to the following account:</p>
+                        
+                        <div className="bg-black/30 rounded-xl p-4 space-y-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <p><span className="text-yellow-400 font-black">Account Name:</span> <span className="text-white">NCC Robotics</span></p>
+                              <p><span className="text-yellow-400 font-black">Account No:</span> <span className="text-white">01718360044</span></p>
+                              <p><span className="text-yellow-400 font-black">Bank:</span> <span className="text-white">Bikash Mobile Banking</span></p>
+                            </div>
+                            <div className="space-y-2">
+                              <p><span className="text-yellow-400 font-black">Type:</span> <span className="text-white">Personal</span></p>
+                              <p><span className="text-yellow-400 font-black">Reference:</span> <span className="text-white">Your Name + ROBOTICS2025</span></p>
+                              <p><span className="text-yellow-400 font-black">Amount:</span> <span className="text-white">৳100</span></p>
+                            </div>
+                          </div>
+                          <div className="mt-4 pt-3 border-t border-gray-600">
+                            <p className="text-sm text-gray-400">
+                              <span className="text-yellow-400 font-bold">Important:</span> Please include your full name and "ROBOTICS2025" in the transaction reference/note field.
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-4 p-3 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+                          <p className="text-blue-300 text-sm font-medium">
+                            <span className="font-bold">Note:</span> After completing registration and payment, upload your payment screenshot for verification.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
                 </div>
               </div>
             </motion.div>
