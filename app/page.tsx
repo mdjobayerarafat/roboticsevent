@@ -180,7 +180,79 @@ const HomePage = () => {
             </motion.div>
           </div>
         </div>
-      </section>      {/* CAMCORDER Section */}
+      </section>      {/* Sponsor Banner - clkbx */}
+      <section className="py-8 bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 relative overflow-hidden">
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <motion.div 
+            className="flex flex-col lg:flex-row items-center justify-between gap-6"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+          >
+            {/* Left Content */}
+            <div className="flex-1 text-center lg:text-left">
+              <motion.div
+                className="inline-flex items-center bg-black/20 backdrop-blur-sm rounded-full px-4 py-2 mb-4"
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                viewport={{ once: true }}
+              >
+                <Star className="w-4 h-4 text-yellow-300 mr-2" />
+                <span className="text-black text-sm font-semibold">EXCLUSIVE PARTNER</span>
+              </motion.div>
+              
+              <motion.h3 
+                className="text-2xl sm:text-3xl lg:text-4xl font-bold text-black mb-2"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                viewport={{ once: true }}
+              >
+                Powered by <span className="text-gray-900">clkbx</span>
+              </motion.h3>
+              
+              <motion.p 
+                className="text-black/80 text-base sm:text-lg mb-6 lg:mb-0 max-w-2xl"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+                viewport={{ once: true }}
+              >
+                <strong>Special Offer:</strong> All workshop participants get <span className="text-red-600 font-bold">50% OFF</span> on clkbx services!
+              </motion.p>
+            </div>
+
+            {/* Right Content - CTA Button */}
+            <motion.div
+              className="flex-shrink-0"
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              viewport={{ once: true }}
+            >
+              <a
+                href="https://www.clkbx.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-3 bg-black text-yellow-400 font-bold px-6 sm:px-8 py-3 sm:py-4 rounded-full hover:bg-gray-800 transition-all duration-300 text-sm sm:text-base group shadow-lg hover:shadow-xl"
+                aria-label="Visit clkbx website to learn more about their services and claim your 50% discount"
+              >
+                <span>Visit clkbx</span>
+                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform duration-300" />
+              </a>
+            </motion.div>
+          </motion.div>
+
+          {/* Decorative Elements */}
+          <div className="absolute top-0 left-1/4 w-32 h-32 bg-black/5 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 right-1/4 w-24 h-24 bg-black/10 rounded-full blur-2xl"></div>
+        </div>
+      </section>
+
+      {/* CAMCORDER Section */}
       <section className="py-32 bg-yellow-400">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">

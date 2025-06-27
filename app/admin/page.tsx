@@ -811,6 +811,7 @@ const AdminPanel = () => {
       console.log('Total users:', allUsers.length);
       console.log('Exporting non-admin users count:', exportUsers.length);
       console.log('Admin users excluded:', allUsers.length - exportUsers.length);
+      console.log('Users to export sample:', exportUsers.slice(0, 5).map(u => ({ name: u.name, email: u.email, status: u.status })));
       
       if (exportUsers.length === 0) {
         toast.error('No non-admin users found to export.');
@@ -1011,16 +1012,95 @@ const AdminPanel = () => {
       doc.setLineWidth(1);
       doc.rect(margin, tableStartY, totalColWidth, rowHeight + 3);
       
-      // Table rows with improved formatting
+      // Table rows with multi-page support - SHOW ALL USERS
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(255, 255, 255);
       
       const maxRowsPerPage = Math.floor((pageHeight - tableStartY - 70) / rowHeight);
-      const usersToShow = exportUsers.slice(0, maxRowsPerPage);
+      let currentPage = 1;
+      let currentYPos = tableStartY + rowHeight + 3;
+      let rowsOnCurrentPage = 0;
       
-      usersToShow.forEach((user, index) => {
-        const yPos = tableStartY + rowHeight + 3 + (index * rowHeight);
+      console.log(`Generating PDF with ${exportUsers.length} users across multiple pages`);
+      console.log(`Max rows per page: ${maxRowsPerPage}`);
+      
+      // Function to draw table header on each page
+      const drawTableHeader = (startY: number) => {
+        // Table header background
+        doc.setFillColor(colors.accent[0], colors.accent[1], colors.accent[2]);
+        doc.roundedRect(margin, startY, totalColWidth, rowHeight + 3, 2, 2, 'F');
+        
+        // Table headers with improved typography
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(colors.dark[0], colors.dark[1], colors.dark[2]);
+        
+        let xPos = margin;
+        headers.forEach((header, index) => {
+          if (index === 0 || index === 5) {
+            // Center align # and Status headers
+            const colCenter = xPos + (colWidths[index] / 2);
+            doc.text(header, colCenter, startY + 7.5, { align: 'center' });
+          } else {
+            // Left align other headers with padding
+            doc.text(header, xPos + 2, startY + 7.5);
+          }
+          xPos += colWidths[index];
+        });
+        
+        // Table header border
+        doc.setDrawColor(colors.accent[0], colors.accent[1], colors.accent[2]);
+        doc.setLineWidth(1);
+        doc.rect(margin, startY, totalColWidth, rowHeight + 3);
+      };
+      
+      // Function to add new page with proper styling
+      const addNewPage = () => {
+        doc.addPage();
+        currentPage++;
+        
+        // Dark background for new page
+        doc.setFillColor(colors.dark[0], colors.dark[1], colors.dark[2]);
+        doc.rect(0, 0, pageWidth, pageHeight, 'F');
+        
+        // Add decorative circles
+        doc.setFillColor(colors.accent[0], colors.accent[1], colors.accent[2]);
+        doc.circle(pageWidth - 30, 30, 20, 'F');
+        
+        doc.setFillColor(colors.blue[0], colors.blue[1], colors.blue[2]);
+        doc.circle(30, pageHeight - 30, 15, 'F');
+        
+        doc.setFillColor(colors.purple[0], colors.purple[1], colors.purple[2]);
+        doc.circle(pageWidth - 20, pageHeight - 40, 12, 'F');
+        
+        // Page header
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(16);
+        doc.setTextColor(colors.accent[0], colors.accent[1], colors.accent[2]);
+        doc.text('NCC ROBOTICS WORKSHOP 2025', pageWidth / 2, 25, { align: 'center' });
+        
+        doc.setFontSize(10);
+        doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+        doc.text(`USERS REPORT - PAGE ${currentPage}`, pageWidth / 2, 35, { align: 'center' });
+        
+        // Reset position for new page
+        currentYPos = 50;
+        rowsOnCurrentPage = 0;
+        
+        // Draw table header on new page
+        drawTableHeader(currentYPos);
+        currentYPos += rowHeight + 3;
+      };
+      
+      // Process ALL users with pagination
+      exportUsers.forEach((user, index) => {
+        // Check if we need a new page
+        if (rowsOnCurrentPage >= maxRowsPerPage && index > 0) {
+          addNewPage();
+        }
+        
+        const yPos = currentYPos + (rowsOnCurrentPage * rowHeight);
         
         // Alternate row background with better contrast
         if (index % 2 === 0) {
@@ -1042,7 +1122,7 @@ const AdminPanel = () => {
         colWidths.forEach((width, colIndex) => {
           separatorX += width;
           if (colIndex < colWidths.length - 1) { // Don't draw separator after last column
-            doc.line(separatorX, tableStartY, separatorX, yPos + rowHeight);
+            doc.line(separatorX, currentYPos - rowHeight - 3, separatorX, yPos + rowHeight);
           }
         });
         
@@ -1057,6 +1137,10 @@ const AdminPanel = () => {
           (user.status || 'pending').toUpperCase()
         ];
         
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(255, 255, 255);
+        
         rawData.forEach((data, colIndex) => {
           const fittedData = fitTextInColumn(data, colWidths[colIndex], 8);
           
@@ -1070,66 +1154,75 @@ const AdminPanel = () => {
           }
           dataXPos += colWidths[colIndex];
         });
+        
+        rowsOnCurrentPage++;
       });
 
-      // Final table border
+      // Final table border for last page
       doc.setDrawColor(colors.accent[0], colors.accent[1], colors.accent[2]);
       doc.setLineWidth(1);
-      const tableHeight = (usersToShow.length * rowHeight) + rowHeight + 3;
-      doc.rect(margin, tableStartY, totalColWidth, tableHeight);
+      const finalTableHeight = (rowsOnCurrentPage * rowHeight);
+      doc.rect(margin, currentYPos - rowHeight - 3, totalColWidth, finalTableHeight + rowHeight + 3);
 
-      // Table summary
-      const tableEndY = tableStartY + (usersToShow.length * rowHeight) + rowHeight + 8;
+      // Table summary on last page
+      const tableEndY = currentYPos + (rowsOnCurrentPage * rowHeight) + 8;
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(colors.lightText[0], colors.lightText[1], colors.lightText[2]);
       
-      if (exportUsers.length > usersToShow.length) {
-        doc.text(`Showing first ${usersToShow.length} users of ${exportUsers.length} total users`, margin, tableEndY);
-      } else {
-        doc.text(`All ${exportUsers.length} registered users shown`, margin, tableEndY);
-      }
+      doc.text(`All ${exportUsers.length} registered users shown across ${currentPage} page(s)`, margin, tableEndY);
 
-      // Footer section
-      const footerY = pageHeight - 30;
+      // Footer section - Add to all pages
+      const addFooterToAllPages = () => {
+        const totalPages = doc.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+          doc.setPage(i);
+          
+          const footerY = pageHeight - 30;
+          
+          // Footer background
+          doc.setFillColor(colors.dark[0], colors.dark[1], colors.dark[2]);
+          doc.rect(0, footerY - 5, pageWidth, 40, 'F');
+          
+          // Decorative accent line
+          doc.setDrawColor(colors.accent[0], colors.accent[1], colors.accent[2]);
+          doc.setLineWidth(2);
+          doc.line(15, footerY, pageWidth - 15, footerY);
+
+          // Footer content
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(14);
+          doc.setTextColor(colors.accent[0], colors.accent[1], colors.accent[2]);
+          doc.text('NCC ROBOTICS WORKSHOP 2025', pageWidth / 2, footerY + 10, { align: 'center' });
+
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(colors.lightText[0], colors.lightText[1], colors.lightText[2]);
+          doc.text('Generated by Admin Panel', 15, footerY + 18);
+          doc.text(`Export Date: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 15, footerY + 25);
+          doc.text(`Total Users: ${totalUsers} | Page ${i} of ${totalPages}`, pageWidth - 80, footerY + 18);
+          doc.text(`Report Generated at: ${new Date().toLocaleString()}`, pageWidth - 80, footerY + 25);
+        }
+      };
       
-      // Footer background
-      doc.setFillColor(colors.dark[0], colors.dark[1], colors.dark[2]);
-      doc.rect(0, footerY - 5, pageWidth, 40, 'F');
-      
-      // Decorative accent line
-      doc.setDrawColor(colors.accent[0], colors.accent[1], colors.accent[2]);
-      doc.setLineWidth(2);
-      doc.line(15, footerY, pageWidth - 15, footerY);
-
-      // Footer content
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.setTextColor(colors.accent[0], colors.accent[1], colors.accent[2]);
-      doc.text('NCC ROBOTICS WORKSHOP 2025', pageWidth / 2, footerY + 10, { align: 'center' });
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.setTextColor(colors.lightText[0], colors.lightText[1], colors.lightText[2]);
-      doc.text('Generated by Admin Panel', 15, footerY + 18);
-      doc.text(`Export Date: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 15, footerY + 25);
-      doc.text(`Total Registered Users: ${totalUsers}`, pageWidth - 80, footerY + 18);
-      doc.text(`Report Generated at: ${new Date().toLocaleString()}`, pageWidth - 80, footerY + 25);
+      // Add footers to all pages
+      addFooterToAllPages();
 
       // Save with descriptive filename
       const timestamp = new Date().toISOString().split('T')[0];
-      const filename = `NCC_Robotics_Users_Report_${timestamp}_${totalUsers}users.pdf`;
+      const filename = `NCC_Robotics_Users_Report_${timestamp}_${totalUsers}users_${currentPage}pages.pdf`;
       
       console.log('Saving PDF:', filename);
+      console.log(`PDF contains ${exportUsers.length} users across ${currentPage} pages`);
       doc.save(filename);
       
       // Dismiss loading toast and show success
       toast.dismiss(loadingToast);
-      toast.success(`PDF exported successfully! (${totalUsers} users included)`, {
+      toast.success(`PDF exported successfully! (${totalUsers} users across ${currentPage} pages)`, {
         duration: 4000
       });
       
-      console.log('PDF export completed successfully');
+      console.log('PDF export completed successfully - ALL USERS INCLUDED');
       
     } catch (error: any) {
       console.error('Error generating PDF:', error);

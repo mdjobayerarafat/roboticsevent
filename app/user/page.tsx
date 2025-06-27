@@ -469,25 +469,19 @@ const UserDashboard = () => {
       doc.text(`Registration Fee: ${userRegistration.registrationFee || 1000} BDT`, 25, yPos + 45);
       doc.text(`Payment Status: ${userRegistration.paymentStatus.toUpperCase()}`, 25, yPos + 60);
       
-      // Generate QR Code with registration data
-      const qrData = JSON.stringify({
-        registrationId: userRegistration.registrationId,
-        name: userProfile.name,
-        email: userProfile.email,
-        eventType: userRegistration.eventType,
-        status: userRegistration.status,
-        submittedAt: userRegistration.submittedAt,
-        verificationUrl: `${window.location.origin}/verify/${userRegistration.registrationId}`
-      });
+      // Generate QR Code with direct verification URL
+      const verificationUrl = `${window.location.origin}/verify/${userRegistration.registrationId}`;
+      console.log('Generated QR verification URL:', verificationUrl);
       
-      // Generate QR code as data URL
-      const qrCodeDataURL = await QRCode.toDataURL(qrData, {
+      // Generate QR code as data URL - Use direct URL instead of JSON for better scanner compatibility
+      const qrCodeDataURL = await QRCode.toDataURL(verificationUrl, {
         width: 200,
         margin: 2,
         color: {
           dark: '#000000',
           light: '#FFFFFF'
-        }
+        },
+        errorCorrectionLevel: 'M' // Medium error correction for better scanning
       });
       
       // Add QR code to PDF
@@ -505,7 +499,7 @@ const UserDashboard = () => {
       doc.text('SCAN QR CODE', 165, 170, { align: 'center' });
       doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "normal");
-      doc.text('for verification', 165, 180, { align: 'center' });
+      doc.text('to verify registration', 165, 180, { align: 'center' });
       
       // Instructions Section
       doc.setFillColor(255, 215, 0, 0.1); // Very light yellow background
@@ -521,7 +515,8 @@ const UserDashboard = () => {
       doc.setFont("helvetica", "normal");
       doc.text('• Please bring this confirmation and a valid photo ID to the workshop venue', 25, 225);
       doc.text('• Arrive 30 minutes before the scheduled workshop time', 25, 235);
-      doc.text('• For questions or support, contact: support@nccrobotics.com', 25, 245);
+      doc.text('• Scan the QR code above to verify your registration online', 25, 245);
+      doc.text('• For questions or support, contact: support@nccrobotics.com', 25, 255);
       
       // Footer with website theme colors
       doc.setFillColor(255, 215, 0); // Yellow footer
