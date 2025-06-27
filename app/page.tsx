@@ -181,8 +181,8 @@ const HomePage = () => {
           </div>
         </div>
       </section>      {/* Sponsor Banner - clkbx */}
-      <section className="py-8 bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/10"></div>
+      <section className="py-8 bg-gradient-to-r from-black via-gray-900 to-black relative overflow-hidden border-y-4 border-yellow-400">
+        <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/5 via-transparent to-yellow-400/5"></div>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div 
             className="flex flex-col lg:flex-row items-center justify-between gap-6"
@@ -194,34 +194,34 @@ const HomePage = () => {
             {/* Left Content */}
             <div className="flex-1 text-center lg:text-left">
               <motion.div
-                className="inline-flex items-center bg-black/20 backdrop-blur-sm rounded-full px-4 py-2 mb-4"
+                className="inline-flex items-center bg-yellow-400/20 backdrop-blur-sm rounded-full px-4 py-2 mb-4 border border-yellow-400/30"
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
                 viewport={{ once: true }}
               >
-                <Star className="w-4 h-4 text-yellow-300 mr-2" />
-                <span className="text-black text-sm font-semibold">EXCLUSIVE PARTNER</span>
+                <Star className="w-4 h-4 text-yellow-400 mr-2" />
+                <span className="text-yellow-400 text-sm font-bold uppercase tracking-wider">EXCLUSIVE PARTNER</span>
               </motion.div>
               
               <motion.h3 
-                className="text-2xl sm:text-3xl lg:text-4xl font-bold text-black mb-2"
+                className="text-2xl sm:text-3xl lg:text-4xl font-black text-white mb-2 uppercase tracking-wider"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
                 viewport={{ once: true }}
               >
-                Powered by <span className="text-gray-900">clkbx</span>
+                Powered by <span className="text-yellow-400">clkbx</span>
               </motion.h3>
               
               <motion.p 
-                className="text-black/80 text-base sm:text-lg mb-6 lg:mb-0 max-w-2xl"
+                className="text-gray-300 text-base sm:text-lg mb-6 lg:mb-0 max-w-2xl font-medium"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.4 }}
                 viewport={{ once: true }}
               >
-                <strong>Special Offer:</strong> All workshop participants get <span className="text-red-600 font-bold">50% OFF</span> on clkbx services!
+                <strong className="text-white">Special Offer:</strong> All workshop participants get <span className="text-yellow-400 font-black text-xl">100% OFF</span> on clkbx services!
               </motion.p>
             </div>
 
@@ -237,7 +237,7 @@ const HomePage = () => {
                 href="https://www.clkbx.com/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-3 bg-black text-yellow-400 font-bold px-6 sm:px-8 py-3 sm:py-4 rounded-full hover:bg-gray-800 transition-all duration-300 text-sm sm:text-base group shadow-lg hover:shadow-xl"
+                className="inline-flex items-center gap-3 bg-yellow-400 text-black font-black px-6 sm:px-8 py-3 sm:py-4 rounded-full hover:bg-yellow-500 transition-all duration-300 text-sm sm:text-base group shadow-lg hover:shadow-xl uppercase tracking-wider border-2 border-yellow-400 hover:border-yellow-500"
                 aria-label="Visit clkbx website to learn more about their services and claim your 50% discount"
               >
                 <span>Visit clkbx</span>
@@ -247,8 +247,8 @@ const HomePage = () => {
           </motion.div>
 
           {/* Decorative Elements */}
-          <div className="absolute top-0 left-1/4 w-32 h-32 bg-black/5 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 right-1/4 w-24 h-24 bg-black/10 rounded-full blur-2xl"></div>
+          <div className="absolute top-0 left-1/4 w-32 h-32 bg-yellow-400/5 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 right-1/4 w-24 h-24 bg-yellow-400/10 rounded-full blur-2xl"></div>
         </div>
       </section>
 

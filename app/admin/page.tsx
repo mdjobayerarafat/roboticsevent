@@ -22,6 +22,7 @@ import {
   Send,
   Package,
   AlertCircle,
+  AlertTriangle,
   X,
   ExternalLink,
   User,
@@ -753,43 +754,6 @@ const AdminPanel = () => {
     }
   };
 
-  const sendWelcomeEmail = async (user: User) => {
-    try {
-      // Show loading toast
-      const toastId = toast.loading('Sending welcome email...');
-      
-      console.log('📧 Sending welcome email to user:', user);
-      
-      const emailResponse = await fetch('/api/send-welcome-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: user.email,
-          name: user.name,
-          registrationId: user.registrationId || `NCR-${Date.now()}`,
-        }),
-      });
-
-      const responseData = await emailResponse.json();
-      console.log('📧 Email response:', responseData);
-
-      toast.dismiss(toastId);
-
-      if (emailResponse.ok) {
-        console.log('✅ Welcome email sent successfully');
-        toast.success(`Welcome email sent to ${user.name} successfully!`);
-      } else {
-        console.error('❌ Failed to send welcome email:', responseData);
-        toast.error(`Failed to send email: ${responseData.error || 'Unknown error'}`);
-      }
-    } catch (emailError) {
-      console.error('❌ Error sending welcome email:', emailError);
-      toast.error('Failed to send welcome email. Please try again.');
-    }
-  };
-
   const exportUsersPDF = async () => {
     let loadingToast: any;
     let exportUsers: User[] = [];
@@ -811,7 +775,6 @@ const AdminPanel = () => {
       console.log('Total users:', allUsers.length);
       console.log('Exporting non-admin users count:', exportUsers.length);
       console.log('Admin users excluded:', allUsers.length - exportUsers.length);
-      console.log('Users to export sample:', exportUsers.slice(0, 5).map(u => ({ name: u.name, email: u.email, status: u.status })));
       
       if (exportUsers.length === 0) {
         toast.error('No non-admin users found to export.');
@@ -1012,26 +975,39 @@ const AdminPanel = () => {
       doc.setLineWidth(1);
       doc.rect(margin, tableStartY, totalColWidth, rowHeight + 3);
       
-      // Table rows with multi-page support - SHOW ALL USERS
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.setTextColor(255, 255, 255);
-      
-      const maxRowsPerPage = Math.floor((pageHeight - tableStartY - 70) / rowHeight);
-      let currentPage = 1;
-      let currentYPos = tableStartY + rowHeight + 3;
-      let rowsOnCurrentPage = 0;
-      
-      console.log(`Generating PDF with ${exportUsers.length} users across multiple pages`);
-      console.log(`Max rows per page: ${maxRowsPerPage}`);
-      
-      // Function to draw table header on each page
-      const drawTableHeader = (startY: number) => {
-        // Table header background
+      // Function to add page header on new pages
+      const addPageHeader = (pageNum: number, totalPages: number) => {
+        // Dark background
+        doc.setFillColor(colors.dark[0], colors.dark[1], colors.dark[2]);
+        doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+        // Add decorative circles
         doc.setFillColor(colors.accent[0], colors.accent[1], colors.accent[2]);
-        doc.roundedRect(margin, startY, totalColWidth, rowHeight + 3, 2, 2, 'F');
+        doc.circle(pageWidth - 30, 30, 20, 'F');
         
-        // Table headers with improved typography
+        doc.setFillColor(colors.blue[0], colors.blue[1], colors.blue[2]);
+        doc.circle(30, pageHeight - 30, 15, 'F');
+
+        // Header section
+        doc.setFillColor(colors.accent[0], colors.accent[1], colors.accent[2]);
+        doc.roundedRect(margin, margin, contentWidth, 25, 6, 6, 'F');
+
+        // Title
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.setTextColor(colors.dark[0], colors.dark[1], colors.dark[2]);
+        doc.text('NCC ROBOTICS WORKSHOP 2025', pageWidth / 2, margin + 10, { align: 'center' });
+
+        // Page info
+        doc.setFontSize(8);
+        doc.setTextColor(colors.dark[0], colors.dark[1], colors.dark[2]);
+        doc.text(`Page ${pageNum} of ${totalPages} | User Verification Report`, pageWidth / 2, margin + 18, { align: 'center' });
+
+        // Table header
+        const newTableStartY = margin + 35;
+        doc.setFillColor(colors.accent[0], colors.accent[1], colors.accent[2]);
+        doc.roundedRect(margin, newTableStartY, totalColWidth, rowHeight + 3, 2, 2, 'F');
+        
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
         doc.setTextColor(colors.dark[0], colors.dark[1], colors.dark[2]);
@@ -1039,71 +1015,56 @@ const AdminPanel = () => {
         let xPos = margin;
         headers.forEach((header, index) => {
           if (index === 0 || index === 5) {
-            // Center align # and Status headers
             const colCenter = xPos + (colWidths[index] / 2);
-            doc.text(header, colCenter, startY + 7.5, { align: 'center' });
+            doc.text(header, colCenter, newTableStartY + 7.5, { align: 'center' });
           } else {
-            // Left align other headers with padding
-            doc.text(header, xPos + 2, startY + 7.5);
+            doc.text(header, xPos + 2, newTableStartY + 7.5);
           }
           xPos += colWidths[index];
         });
         
-        // Table header border
         doc.setDrawColor(colors.accent[0], colors.accent[1], colors.accent[2]);
         doc.setLineWidth(1);
-        doc.rect(margin, startY, totalColWidth, rowHeight + 3);
+        doc.rect(margin, newTableStartY, totalColWidth, rowHeight + 3);
+
+        return newTableStartY;
       };
+
+      // Calculate rows per page dynamically and total pages
+      const maxRowsPerPage = Math.floor((pageHeight - tableStartY - 70) / rowHeight);
+      const totalPages = Math.ceil(exportUsers.length / maxRowsPerPage);
+      console.log(`Max rows per page: ${maxRowsPerPage}`);
+      console.log(`Total users to export: ${exportUsers.length}`);
+      console.log(`Total pages needed: ${totalPages}`);
       
-      // Function to add new page with proper styling
-      const addNewPage = () => {
-        doc.addPage();
-        currentPage++;
-        
-        // Dark background for new page
-        doc.setFillColor(colors.dark[0], colors.dark[1], colors.dark[2]);
-        doc.rect(0, 0, pageWidth, pageHeight, 'F');
-        
-        // Add decorative circles
-        doc.setFillColor(colors.accent[0], colors.accent[1], colors.accent[2]);
-        doc.circle(pageWidth - 30, 30, 20, 'F');
-        
-        doc.setFillColor(colors.blue[0], colors.blue[1], colors.blue[2]);
-        doc.circle(30, pageHeight - 30, 15, 'F');
-        
-        doc.setFillColor(colors.purple[0], colors.purple[1], colors.purple[2]);
-        doc.circle(pageWidth - 20, pageHeight - 40, 12, 'F');
-        
-        // Page header
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(16);
-        doc.setTextColor(colors.accent[0], colors.accent[1], colors.accent[2]);
-        doc.text('NCC ROBOTICS WORKSHOP 2025', pageWidth / 2, 25, { align: 'center' });
-        
-        doc.setFontSize(10);
-        doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
-        doc.text(`USERS REPORT - PAGE ${currentPage}`, pageWidth / 2, 35, { align: 'center' });
-        
-        // Reset position for new page
-        currentYPos = 50;
-        rowsOnCurrentPage = 0;
-        
-        // Draw table header on new page
-        drawTableHeader(currentYPos);
-        currentYPos += rowHeight + 3;
-      };
+      // Paginate through all users
+      let currentPage = 1;
+      let currentTableStartY = tableStartY;
+      let userIndex = 0;
+      let rowsOnCurrentPage = 0;
       
-      // Process ALL users with pagination
-      exportUsers.forEach((user, index) => {
+      // Table rows with improved formatting and pagination
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(255, 255, 255);
+      
+      while (userIndex < exportUsers.length) {
+        const user = exportUsers[userIndex];
+        
         // Check if we need a new page
-        if (rowsOnCurrentPage >= maxRowsPerPage && index > 0) {
-          addNewPage();
+        if (rowsOnCurrentPage >= maxRowsPerPage && userIndex < exportUsers.length) {
+          // Add new page
+          doc.addPage();
+          currentPage++;
+          currentTableStartY = addPageHeader(currentPage, totalPages);
+          rowsOnCurrentPage = 0;
+          console.log(`Added page ${currentPage} for user ${userIndex + 1}`);
         }
         
-        const yPos = currentYPos + (rowsOnCurrentPage * rowHeight);
+        const yPos = currentTableStartY + rowHeight + 3 + (rowsOnCurrentPage * rowHeight);
         
         // Alternate row background with better contrast
-        if (index % 2 === 0) {
+        if (rowsOnCurrentPage % 2 === 0) {
           doc.setFillColor(colors.cardBg[0], colors.cardBg[1], colors.cardBg[2]);
         } else {
           doc.setFillColor(30, 41, 59); // slate-800
@@ -1121,25 +1082,21 @@ const AdminPanel = () => {
         let separatorX = margin;
         colWidths.forEach((width, colIndex) => {
           separatorX += width;
-          if (colIndex < colWidths.length - 1) { // Don't draw separator after last column
-            doc.line(separatorX, currentYPos - rowHeight - 3, separatorX, yPos + rowHeight);
+          if (colIndex < colWidths.length - 1) {
+            doc.line(separatorX, currentTableStartY, separatorX, yPos + rowHeight);
           }
         });
         
         // Row data with improved text fitting and alignment
         let dataXPos = margin;
         const rawData = [
-          (index + 1).toString(),
+          (userIndex + 1).toString(), // Use global userIndex for continuous numbering
           user.name || 'N/A',
           user.email || 'N/A',
           user.institution || 'N/A',
           user.phone || 'N/A',
           (user.status || 'pending').toUpperCase()
         ];
-        
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8);
-        doc.setTextColor(255, 255, 255);
         
         rawData.forEach((data, colIndex) => {
           const fittedData = fitTextInColumn(data, colWidths[colIndex], 8);
@@ -1155,74 +1112,66 @@ const AdminPanel = () => {
           dataXPos += colWidths[colIndex];
         });
         
+        userIndex++;
         rowsOnCurrentPage++;
-      });
+      }
 
-      // Final table border for last page
+      // Final table border for the last page
       doc.setDrawColor(colors.accent[0], colors.accent[1], colors.accent[2]);
       doc.setLineWidth(1);
-      const finalTableHeight = (rowsOnCurrentPage * rowHeight);
-      doc.rect(margin, currentYPos - rowHeight - 3, totalColWidth, finalTableHeight + rowHeight + 3);
+      const finalTableHeight = (rowsOnCurrentPage * rowHeight) + rowHeight + 3;
+      doc.rect(margin, currentTableStartY, totalColWidth, finalTableHeight);
 
-      // Table summary on last page
-      const tableEndY = currentYPos + (rowsOnCurrentPage * rowHeight) + 8;
+      // Table summary on the last page
+      const tableEndY = currentTableStartY + (rowsOnCurrentPage * rowHeight) + rowHeight + 8;
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(colors.lightText[0], colors.lightText[1], colors.lightText[2]);
       
-      doc.text(`All ${exportUsers.length} registered users shown across ${currentPage} page(s)`, margin, tableEndY);
-
-      // Footer section - Add to all pages
-      const addFooterToAllPages = () => {
-        const totalPages = doc.getNumberOfPages();
-        for (let i = 1; i <= totalPages; i++) {
-          doc.setPage(i);
-          
-          const footerY = pageHeight - 30;
-          
-          // Footer background
-          doc.setFillColor(colors.dark[0], colors.dark[1], colors.dark[2]);
-          doc.rect(0, footerY - 5, pageWidth, 40, 'F');
-          
-          // Decorative accent line
-          doc.setDrawColor(colors.accent[0], colors.accent[1], colors.accent[2]);
-          doc.setLineWidth(2);
-          doc.line(15, footerY, pageWidth - 15, footerY);
-
-          // Footer content
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(14);
-          doc.setTextColor(colors.accent[0], colors.accent[1], colors.accent[2]);
-          doc.text('NCC ROBOTICS WORKSHOP 2025', pageWidth / 2, footerY + 10, { align: 'center' });
-
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(8);
-          doc.setTextColor(colors.lightText[0], colors.lightText[1], colors.lightText[2]);
-          doc.text('Generated by Admin Panel', 15, footerY + 18);
-          doc.text(`Export Date: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 15, footerY + 25);
-          doc.text(`Total Users: ${totalUsers} | Page ${i} of ${totalPages}`, pageWidth - 80, footerY + 18);
-          doc.text(`Report Generated at: ${new Date().toLocaleString()}`, pageWidth - 80, footerY + 25);
-        }
-      };
+      doc.text(`All ${exportUsers.length} registered users shown across ${currentPage} page${currentPage > 1 ? 's' : ''}`, margin, tableEndY);
       
-      // Add footers to all pages
-      addFooterToAllPages();
+      console.log(`PDF generation completed: ${exportUsers.length} users across ${currentPage} pages`);
+
+      // Footer section
+      const footerY = pageHeight - 30;
+      
+      // Footer background
+      doc.setFillColor(colors.dark[0], colors.dark[1], colors.dark[2]);
+      doc.rect(0, footerY - 5, pageWidth, 40, 'F');
+      
+      // Decorative accent line
+      doc.setDrawColor(colors.accent[0], colors.accent[1], colors.accent[2]);
+      doc.setLineWidth(2);
+      doc.line(15, footerY, pageWidth - 15, footerY);
+
+      // Footer content
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(colors.accent[0], colors.accent[1], colors.accent[2]);
+      doc.text('NCC ROBOTICS WORKSHOP 2025', pageWidth / 2, footerY + 10, { align: 'center' });
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(colors.lightText[0], colors.lightText[1], colors.lightText[2]);
+      doc.text('Generated by Admin Panel', 15, footerY + 18);
+      doc.text(`Export Date: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 15, footerY + 25);
+      doc.text(`Total Registered Users: ${totalUsers}`, pageWidth - 80, footerY + 18);
+      doc.text(`Report Generated at: ${new Date().toLocaleString()}`, pageWidth - 80, footerY + 25);
 
       // Save with descriptive filename
       const timestamp = new Date().toISOString().split('T')[0];
-      const filename = `NCC_Robotics_Users_Report_${timestamp}_${totalUsers}users_${currentPage}pages.pdf`;
+      const filename = `NCC_Robotics_Users_Report_${timestamp}_${totalUsers}users.pdf`;
       
       console.log('Saving PDF:', filename);
-      console.log(`PDF contains ${exportUsers.length} users across ${currentPage} pages`);
       doc.save(filename);
       
       // Dismiss loading toast and show success
       toast.dismiss(loadingToast);
-      toast.success(`PDF exported successfully! (${totalUsers} users across ${currentPage} pages)`, {
+      toast.success(`PDF exported successfully! (${totalUsers} users included)`, {
         duration: 4000
       });
       
-      console.log('PDF export completed successfully - ALL USERS INCLUDED');
+      console.log('PDF export completed successfully');
       
     } catch (error: any) {
       console.error('Error generating PDF:', error);
@@ -1351,10 +1300,79 @@ const AdminPanel = () => {
       setUsers(prev => prev.map(user => 
         user.id === userId ? { ...user, status: newStatus as any } : user
       ));
+      
       toast.success(`Registration status updated to ${newStatus}!`);
+      
+      // If status is approved, offer to send welcome email
+      if (newStatus === 'approved') {
+        const user = users.find(u => u.id === userId);
+        if (user) {
+          // Show toast with option to send welcome email
+          toast((t) => (
+            <div className="flex flex-col space-y-2">
+              <span className="font-medium">User approved successfully!</span>
+              <span className="text-sm text-gray-600">Send welcome email to {user.name}?</span>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    sendWelcomeEmail(user.email, user.name, registrationId);
+                  }}
+                  className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600 transition-colors"
+                >
+                  Send Email
+                </button>
+                <button
+                  onClick={() => toast.dismiss(t.id)}
+                  className="px-3 py-1 bg-gray-400 text-white text-sm rounded hover:bg-gray-500 transition-colors"
+                >
+                  Skip
+                </button>
+              </div>
+            </div>
+          ), {
+            duration: 10000,
+            position: 'top-center',
+          });
+        }
+      }
     } catch (error) {
       console.error('Error updating registration status:', error);
       toast.error('Failed to update registration status');
+    }
+  };
+
+  const sendWelcomeEmail = async (email: string, name: string, registrationId: string) => {
+    try {
+      const loadingToast = toast.loading('Sending welcome email...');
+      
+      const response = await fetch('/api/send-welcome-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          name,
+          registrationId
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send welcome email');
+      }
+
+      const result = await response.json();
+      toast.dismiss(loadingToast);
+      toast.success(`Welcome email sent successfully to ${name}!`, {
+        duration: 5000,
+        icon: '📧',
+      });
+      
+      console.log('Welcome email sent:', result);
+    } catch (error: any) {
+      console.error('Error sending welcome email:', error);
+      toast.error(`Failed to send welcome email: ${error.message}`);
     }
   };
 
@@ -1869,8 +1887,36 @@ const AdminPanel = () => {
                   </p>
                 </div>
                 
-                {/* Export Button - Responsive */}
-                <div className="flex items-center justify-center lg:justify-end">
+                {/* Action Buttons - Responsive */}
+                <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-end space-y-3 sm:space-y-0 sm:space-x-4">
+                  <motion.button
+                    onClick={() => router.push('/admin/verify-all')}
+                    className="group relative w-full sm:w-auto"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-500 rounded-xl blur-lg opacity-75 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="relative bg-gradient-to-r from-blue-400 to-blue-500 text-white font-black py-3 px-4 sm:px-6 rounded-xl flex items-center justify-center transition-all duration-300 uppercase tracking-wider shadow-lg shadow-blue-500/30">
+                      <Shield className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                      <span className="hidden sm:inline">All Verifications</span>
+                      <span className="sm:hidden">Verify All</span>
+                    </div>
+                  </motion.button>
+                  
+                  <motion.button
+                    onClick={() => router.push('/admin/payment-warnings')}
+                    className="group relative w-full sm:w-auto"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-orange-500 rounded-xl blur-lg opacity-75 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="relative bg-gradient-to-r from-red-500 to-orange-500 text-white font-black py-3 px-4 sm:px-6 rounded-xl flex items-center justify-center transition-all duration-300 uppercase tracking-wider shadow-lg shadow-red-500/30">
+                      <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                      <span className="hidden sm:inline">Payment Warnings</span>
+                      <span className="sm:hidden">Warnings</span>
+                    </div>
+                  </motion.button>
+                  
                   <motion.button
                     onClick={exportUsersPDF}
                     className="group relative w-full sm:w-auto"
@@ -2748,7 +2794,7 @@ const UsersTab = ({
   onUpdateRegistrationStatus: (userId: string, registrationId: string, status: string) => void;
   onViewUserImage: (fileId: string, bucketId: string, title: string) => void;
   onViewUserDashboard: (user: User) => void;
-  onSendWelcomeEmail: (user: User) => void;
+  onSendWelcomeEmail: (email: string, name: string, registrationId: string) => void;
 }) => {
   return (
     <div className="space-y-8">
@@ -2927,17 +2973,6 @@ const UsersTab = ({
                         >
                           <Eye className="w-4 h-4" />
                         </motion.button>
-                        {user.status === 'approved' && (
-                          <motion.button
-                            onClick={() => onSendWelcomeEmail(user)}
-                            className="p-2 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-lg hover:bg-blue-500/30 transition-all duration-300"
-                            title="Send Welcome Email"
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                          >
-                            <Send className="w-4 h-4" />
-                          </motion.button>
-                        )}
                         {user.status === 'pending' && (
                           <>
                             <motion.button
@@ -3066,18 +3101,6 @@ const UsersTab = ({
                         </motion.button>
                       </div>
                     )}
-                    
-                    {user.status === 'approved' && (
-                      <motion.button
-                        onClick={() => onSendWelcomeEmail(user)}
-                        className="w-full p-3 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-xl hover:bg-blue-500/30 transition-all duration-300 font-bold uppercase tracking-wider text-sm"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <Send className="w-4 h-4 mr-2 inline" />
-                        Send Welcome Email
-                      </motion.button>
-                    )}
                   </div>
                 </motion.div>
               ))}
@@ -3164,18 +3187,6 @@ const UsersTab = ({
                       View Dashboard
                     </motion.button>
                     
-                    {user.status === 'approved' && (
-                      <motion.button
-                        onClick={() => onSendWelcomeEmail(user)}
-                        className="w-full p-3 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-xl hover:bg-blue-500/30 transition-all duration-300 font-bold uppercase tracking-wider text-sm"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <Send className="w-4 h-4 mr-2 inline" />
-                        Send Welcome Email
-                      </motion.button>
-                    )}
-                    
                     {user.status === 'pending' && (
                       <div className="grid grid-cols-2 gap-3">
                         <motion.button
@@ -3197,6 +3208,18 @@ const UsersTab = ({
                           Reject
                         </motion.button>
                       </div>
+                    )}
+
+                    {user.status === 'approved' && (
+                      <motion.button
+                        onClick={() => onSendWelcomeEmail(user.email, user.name, user.registrationId || '')}
+                        className="w-full p-3 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-xl hover:bg-blue-500/30 transition-all duration-300 font-bold uppercase tracking-wider text-sm"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <Send className="w-4 h-4 mr-2 inline" />
+                        Send Welcome Email
+                      </motion.button>
                     )}
                   </div>
                 </div>
